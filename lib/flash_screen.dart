@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_own_page_view_integration/nav_bar.dart';
-import 'package:flutter_own_page_view_integration/page_view_text.dart';
+import 'page_view_text.dart';
 
 const Color _roseGold = Color(0xFFE0BFB8);
+const Color _cutePink = Color(0xFFF8C8DC);
+const Color _cutePurple = Color(0xFFD6C6F2);
 
 class FlashScreen extends StatefulWidget {
   const FlashScreen({super.key});
@@ -13,103 +15,153 @@ class FlashScreen extends StatefulWidget {
 }
 
 class _FlashScreenState extends State<FlashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _textAnim;
+    with TickerProviderStateMixin {
+
+  late AnimationController _logoController;
+  late AnimationController _fadeController;
+
+  late Animation<double> _scaleAnim;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _floatAnim;
 
   @override
   void initState() {
     super.initState();
 
-    _controller = AnimationController(
+    /// ⏳ Auto Navigate after 3 seconds
+    Timer(const Duration(seconds: 3), () {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const PageViewText()),
+      );
+    });
+
+    _logoController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
+    _fadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..forward();
+
+    _scaleAnim = Tween<double>(begin: 0.9, end: 1.05).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeInOut),
     );
 
-    _textAnim = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeInOut,
+    _floatAnim = Tween<Offset>(
+      begin: const Offset(0, 0),
+      end: const Offset(0, -0.04),
+    ).animate(
+      CurvedAnimation(parent: _logoController, curve: Curves.easeInOut),
     );
 
-    _controller.forward();
+    _fadeAnim = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeIn,
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _logoController.dispose();
+    _fadeController.dispose();
     super.dispose();
   }
 
-  Widget _buildLogo() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 450),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: [
-          BoxShadow(
-            color: _roseGold.withOpacity(0.12),
-            blurRadius: 30,
-            spreadRadius: 6,
-          ),
-        ],
-        border: Border.all(
-          color: _roseGold.withOpacity(0.25),
-          width: 1.2,
-        ),
+  /// 🫧 Floating Cute Bubble
+  Widget _bubble(double size, Alignment align, Color color) {
+    return Align(
+      alignment: align,
+      child: AnimatedBuilder(
+        animation: _logoController,
+        builder: (_, __) {
+          return Transform.translate(
+            offset: Offset(0, -10 * _logoController.value),
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    color.withOpacity(0.35),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: SizedBox.fromSize(
-          size: const Size.fromRadius(80),
-          child: const Image(
-            image: AssetImage('images/beandp.jpg'),
-            fit: BoxFit.cover,
+    );
+  }
+
+  /// 🐻 Cute Logo Card
+  Widget _logo() {
+    return SlideTransition(
+      position: _floatAnim,
+      child: ScaleTransition(
+        scale: _scaleAnim,
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(32),
+            boxShadow: [
+              BoxShadow(
+                color: _cutePink.withOpacity(0.6),
+                blurRadius: 60,
+                spreadRadius: 12,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(26),
+            child: SizedBox(
+              width: 170,
+              height: 170,
+              child: Image.asset(
+                'images/beandp.jpg',
+                fit: BoxFit.cover,
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  // 🔥 BUTTON
-  Widget _buildNextButton() {
-    return GestureDetector(
-      onTap: () {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const PageViewText()),
-        );
-      },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 40,
-              vertical: 14,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.06),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: _roseGold.withOpacity(0.4),
-                width: 1.4,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: _roseGold.withOpacity(0.35),
-                  blurRadius: 20,
-                  spreadRadius: 1,
+  /// 💬 Cute Quote Card
+  Widget _quote() {
+    return FadeTransition(
+      opacity: _fadeAnim,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 30),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(26),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.07),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(
+                  color: _roseGold.withOpacity(0.25),
                 ),
-              ],
-            ),
-            child: Text(
-              "Enter",
-              style: TextStyle(
-                color: _roseGold,
-                fontSize: 18,
-                letterSpacing: 2,
-                fontWeight: FontWeight.w600,
+              ),
+              child: Text(
+                "🐻 Mr. Bean taught me one thing 💛\n\n"
+                    "Enjoy your own company instead of expecting someone else.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  height: 1.6,
+                  fontWeight: FontWeight.w600,
+                  color: _roseGold.withOpacity(0.95),
+                ),
               ),
             ),
           ),
@@ -121,75 +173,47 @@ class _FlashScreenState extends State<FlashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: const NavBar(),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF06040A),
-              Color(0xFF12021A),
-              Color(0xFF2B1236),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLogo(),
-              const SizedBox(height: 30),
+      body: Stack(
+        children: [
 
-              FadeTransition(
-                opacity: _textAnim,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.04),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(
-                            color: _roseGold.withOpacity(0.12),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Text(
-                          'Mr. Bean taught me one thing in life, enjoy your own company instead of expecting someone else.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 22,
-                            letterSpacing: 1.8,
-                            color: _roseGold.withOpacity(0.95),
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(
-                                offset: const Offset(1.5, 1.5),
-                                blurRadius: 6,
-                                color: Colors.black.withOpacity(0.6),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+          /// 🌈 Cute Gradient Background
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF2B124C),
+                  Color(0xFF4A1C6A),
+                  Color(0xFF7A3E9D),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
-
-              const SizedBox(height: 40),
-
-              // ✅ BUTTON INSTEAD OF LOADING LINE
-              _buildNextButton(),
-            ],
+            ),
           ),
-        ),
+
+          /// 🫧 More Cute Bubbles
+          _bubble(280, Alignment.topLeft, _cutePink),
+          _bubble(200, Alignment.topRight, _cutePurple),
+          _bubble(240, Alignment.bottomLeft, _cutePurple),
+          _bubble(180, Alignment.bottomRight, _cutePink),
+
+          /// 💕 Content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+
+                _logo(),
+
+                const SizedBox(height: 40),
+
+                _quote(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 }
+
