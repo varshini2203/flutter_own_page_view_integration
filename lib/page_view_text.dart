@@ -1,7 +1,8 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:flutter_own_page_view_integration/nav_bar.dart';
 import 'package:share_plus/share_plus.dart';
+
+import 'nav_bar.dart';
 import 'app_data_text.dart';
 
 class PageViewText extends StatefulWidget {
@@ -12,16 +13,25 @@ class PageViewText extends StatefulWidget {
 }
 
 class _PageViewTextState extends State<PageViewText>
-    with SingleTickerProviderStateMixin {
-  int _selectedIndex = 0;
-  int _hoverIndex = -1;
+    with TickerProviderStateMixin {
 
-  late AnimationController _glowController;
-  late Animation<double> _glowAnim;
+  int _selectedIndex = 0;
+
+  late final AnimationController _bubbleController;
+  late final AnimationController _glowController;
+  late final Animation<double> _glowAnim;
 
   @override
   void initState() {
     super.initState();
+
+    /// 🫧 Bubble animation
+    _bubbleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat(reverse: true);
+
+    /// ✨ Border glow animation
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -33,6 +43,7 @@ class _PageViewTextState extends State<PageViewText>
 
   @override
   void dispose() {
+    _bubbleController.dispose();
     _glowController.dispose();
     super.dispose();
   }
@@ -56,71 +67,65 @@ class _PageViewTextState extends State<PageViewText>
           IconButton(
             icon: const Icon(Icons.share, color: Color(0xFFE0BFB8)),
             onPressed: () {
-              Share.share(quoteListText[_selectedIndex].quoteText);
+              Share.share(
+                quoteListText[_selectedIndex].quoteText,
+              );
             },
           ),
         ],
       ),
 
-      // 🌌 POLISHED BACKGROUND (MATCHES IMAGE PAGE)
       body: Stack(
         children: [
+
+          /// 🌈 BACKGROUND
           Container(
             decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.topCenter,
-                radius: 1.3,
+              gradient: LinearGradient(
                 colors: [
-                  Color(0xFF2B0040),
-                  Color(0xFF12001F),
-                  Color(0xFF050008),
+                  Color(0xFF2A0845),
+                  Color(0xFF4B176E),
+                  Color(0xFF7E3F98),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
 
-          // ✨ Ambient glow blobs
-          Positioned(
-            top: -120,
-            left: -90,
-            child: _glowBlob(260, Colors.purpleAccent.withOpacity(0.18)),
-          ),
-          Positioned(
-            bottom: -140,
-            right: -100,
-            child: _glowBlob(300, Colors.amberAccent.withOpacity(0.14)),
-          ),
+          /// 🫧 SUBTLE BUBBLES
+          _bubble(220, Alignment.topLeft, Colors.pinkAccent),
+          _bubble(180, Alignment.topRight, Colors.cyanAccent),
+          _bubble(260, Alignment.bottomLeft, Colors.purpleAccent),
+          _bubble(200, Alignment.bottomRight, Colors.blueAccent),
 
-          // 📜 CONTENT
+          /// 📜 CONTENT
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(
-                height: 280,
-                child: PageView.builder(
-                  controller: PageController(viewportFraction: 0.78),
-                  itemCount: quoteListText.length,
-                  onPageChanged: (i) => setState(() => _selectedIndex = i),
-                  itemBuilder: (context, index) {
-                    final bool isActive = index == _selectedIndex;
-                    final bool isHover = index == _hoverIndex;
 
-                    return MouseRegion(
-                      onEnter: (_) => setState(() => _hoverIndex = index),
-                      onExit: (_) => setState(() => _hoverIndex = -1),
-                      child: AnimatedBuilder(
-                        animation: _glowAnim,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: isActive ? 1.0 : 0.93,
-                            child: _glassCard(
-                              quoteListText[index].quoteText,
-                              isActive,
-                              isHover,
-                            ),
-                          );
-                        },
-                      ),
+              SizedBox(
+                height: 300,
+                child: PageView.builder(
+                  controller: PageController(viewportFraction: 0.8),
+                  itemCount: quoteListText.length,
+                  onPageChanged: (i) {
+                    setState(() => _selectedIndex = i);
+                  },
+                  itemBuilder: (context, index) {
+                    final isActive = index == _selectedIndex;
+
+                    return AnimatedBuilder(
+                      animation: _glowAnim,
+                      builder: (_, __) {
+                        return Transform.scale(
+                          scale: isActive ? 1.0 : 0.95,
+                          child: _glassCard(
+                            quoteListText[index].quoteText,
+                            isActive,
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -128,25 +133,25 @@ class _PageViewTextState extends State<PageViewText>
 
               const SizedBox(height: 26),
 
-              // ⚡ GLOWING INDICATOR
+              /// 🐻 PAGE COUNT
               AnimatedBuilder(
                 animation: _glowAnim,
                 builder: (_, __) {
                   final glowColor = Color.lerp(
-                    const Color(0xFFFFD27D),
-                    const Color(0xFFB16CFF),
+                    Colors.pinkAccent,
+                    Colors.cyanAccent,
                     _glowAnim.value,
                   )!;
 
                   return Text(
-                    '${_selectedIndex + 1}/${quoteListText.length}',
+                    '${_selectedIndex + 1} / ${quoteListText.length}',
                     style: TextStyle(
                       fontSize: 18,
                       color: glowColor,
                       shadows: [
-                        BoxShadow(
-                          color: glowColor.withOpacity(0.9),
-                          blurRadius: 22,
+                        Shadow(
+                          color: glowColor.withOpacity(0.7),
+                          blurRadius: 14,
                         ),
                       ],
                     ),
@@ -160,77 +165,79 @@ class _PageViewTextState extends State<PageViewText>
     );
   }
 
-  // 🌟 GLASS QUOTE CARD
-  Widget _glassCard(String text, bool active, bool hover) {
-    final glowColor = Color.lerp(
-      const Color(0xFFFFD27D),
-      const Color(0xFFB16CFF),
-      _glowAnim.value,
-    )!;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 350),
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: active || hover
-            ? [
-          BoxShadow(
-            color: glowColor.withOpacity(0.45),
-            blurRadius: 40,
-            spreadRadius: 8,
-          ),
-          BoxShadow(
-            color: glowColor.withOpacity(0.25),
-            blurRadius: 80,
-            spreadRadius: 16,
-          ),
-        ]
-            : [],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
-            decoration: BoxDecoration(
-              color: const Color(0xFF22002D).withOpacity(0.7),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: glowColor.withOpacity(active ? 0.55 : 0.25),
-                width: 1.4,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 22,
-                  height: 1.5,
-                  color: Colors.white,
-                  fontStyle: FontStyle.italic,
+  /// 🫧 BUBBLE
+  Widget _bubble(double size, Alignment alignment, Color color) {
+    return Align(
+      alignment: alignment,
+      child: AnimatedBuilder(
+        animation: _bubbleController,
+        builder: (_, __) {
+          return Transform.translate(
+            offset: Offset(0, -18 * _bubbleController.value),
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    color.withOpacity(0.3),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  // ✨ AMBIENT BACKGROUND GLOW
-  Widget _glowBlob(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [color, Colors.transparent],
+  /// 🌟 GLASS CARD — BORDER GLOW ONLY
+  Widget _glassCard(String text, bool active) {
+    final glowColor = Color.lerp(
+      Colors.pinkAccent,
+      Colors.cyanAccent,
+      _glowAnim.value,
+    )!;
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(32),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          margin: const EdgeInsets.symmetric(horizontal: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
+
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(32),
+
+            /// ✨ BORDER GLOW ONLY
+            border: Border.all(
+              color: active
+                  ? glowColor.withOpacity(0.85)
+                  : Colors.white.withOpacity(0.25),
+              width: active ? 2.2 : 1.2,
+            ),
+          ),
+
+          child: Center(
+            child: Text(
+              text,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 22,
+                height: 1.5,
+                color: Colors.white,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 }
+
