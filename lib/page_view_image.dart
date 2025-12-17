@@ -14,9 +14,29 @@ class PageViewImage extends StatefulWidget {
   State<PageViewImage> createState() => _PageViewImageState();
 }
 
-class _PageViewImageState extends State<PageViewImage> {
+class _PageViewImageState extends State<PageViewImage>
+    with SingleTickerProviderStateMixin {
+
   int _currentIndex = 0;
   final PageController _controller = PageController(viewportFraction: 0.82);
+
+  late AnimationController _bubbleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _bubbleController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _bubbleController.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,41 +61,39 @@ class _PageViewImageState extends State<PageViewImage> {
         ],
       ),
 
-      // 🌌 POLISHED BACKGROUND
       body: Stack(
         children: [
+
+          /// 🌈 CUTE CARTOON BACKGROUND
           Container(
             decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.topCenter,
-                radius: 1.25,
+              gradient: LinearGradient(
                 colors: [
-                  Color(0xFF1A0033),
-                  Color(0xFF0D001A),
-                  Color(0xFF050008),
+                  Color(0xFF2A0845),
+                  Color(0xFF4B176E),
+                  Color(0xFF7E3F98),
                 ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
           ),
 
-          // ✨ Ambient glow accents
-          Positioned(
-            top: -120,
-            left: -80,
-            child: _glowBlob(260, Colors.purpleAccent.withOpacity(0.14)),
-          ),
-          Positioned(
-            bottom: -140,
-            right: -100,
-            child: _glowBlob(280, Colors.cyanAccent.withOpacity(0.12)),
-          ),
+          /// 🫧 FLOATING CUTE BUBBLES
+          _cuteBubble(260, Alignment.topLeft, Colors.pinkAccent),
+          _cuteBubble(200, Alignment.topRight, Colors.cyanAccent),
+          _cuteBubble(280, Alignment.bottomLeft, Colors.purpleAccent),
+          _cuteBubble(220, Alignment.bottomRight, Colors.blueAccent),
+          _cuteBubble(120, Alignment.centerLeft, Colors.white),
+          _cuteBubble(100, Alignment.centerRight, Colors.pinkAccent),
 
-          // 📸 MAIN CONTENT
+          /// 📸 MAIN CONTENT
           Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+
               SizedBox(
-                height: 400,
+                height: 420,
                 child: PageView.builder(
                   controller: _controller,
                   itemCount: imageList.length,
@@ -90,7 +108,7 @@ class _PageViewImageState extends State<PageViewImage> {
 
               const SizedBox(height: 28),
 
-              // ⚡ SUBTLE GLOW INDICATOR
+              /// 🐻 CUTE INDICATOR
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(
@@ -98,19 +116,19 @@ class _PageViewImageState extends State<PageViewImage> {
                       (index) => AnimatedContainer(
                     duration: const Duration(milliseconds: 300),
                     margin: const EdgeInsets.symmetric(horizontal: 6),
-                    width: _currentIndex == index ? 22 : 10,
-                    height: 8,
+                    width: _currentIndex == index ? 24 : 10,
+                    height: 10,
                     decoration: BoxDecoration(
                       color: _currentIndex == index
-                          ? Colors.cyanAccent
-                          : Colors.grey,
-                      borderRadius: BorderRadius.circular(10),
+                          ? Colors.pinkAccent
+                          : Colors.white38,
+                      borderRadius: BorderRadius.circular(20),
                       boxShadow: _currentIndex == index
                           ? [
                         BoxShadow(
-                          color: Colors.cyanAccent.withOpacity(0.6),
-                          blurRadius: 12,
-                          spreadRadius: 2,
+                          color: Colors.pinkAccent.withOpacity(0.6),
+                          blurRadius: 14,
+                          spreadRadius: 3,
                         ),
                       ]
                           : [],
@@ -119,10 +137,75 @@ class _PageViewImageState extends State<PageViewImage> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 30),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  // 🫧 CUTE FLOATING BUBBLE
+  Widget _cuteBubble(double size, Alignment align, Color color) {
+    return Align(
+      alignment: align,
+      child: AnimatedBuilder(
+        animation: _bubbleController,
+        builder: (_, __) {
+          return Transform.translate(
+            offset: Offset(0, -15 * _bubbleController.value),
+            child: Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    color.withOpacity(0.35),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // 🐻 CUTE IMAGE CARD
+  Widget _imageCard(String imagePath) {
+    return Center(
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0.95, end: 1.0),
+        duration: const Duration(seconds: 3),
+        curve: Curves.easeInOut,
+        builder: (context, scale, child) {
+          return Transform.scale(
+            scale: scale,
+            child: child,
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(36),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.pinkAccent.withOpacity(0.6),
+                blurRadius: 40,
+                spreadRadius: 6,
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(36),
+            child: Image.asset(
+              imagePath,
+              fit: BoxFit.cover,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -141,55 +224,8 @@ class _PageViewImageState extends State<PageViewImage> {
           name: 'rowan_atkinson.jpg',
         ),
       ],
-      text: 'Rowan Atkinson Image Quote',
-    );
-  }
-
-  // 🧊 IMAGE CARD (FOCUSED & CLEAN)
-  Widget _imageCard(String imagePath) {
-    return Center(
-      child: AnimatedScale(
-        scale: 1.0,
-        duration: const Duration(seconds: 4),
-        curve: Curves.easeInOut,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.purpleAccent.withOpacity(0.6),
-                blurRadius: 34,
-                spreadRadius: 4,
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: Image.asset(
-              imagePath,
-              fit: BoxFit.cover,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ✨ AMBIENT GLOW
-  Widget _glowBlob(double size, Color color) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: RadialGradient(
-          colors: [
-            color,
-            Colors.transparent,
-          ],
-        ),
-      ),
+      text: 'Rowan Atkinson Image 💛',
     );
   }
 }
+
